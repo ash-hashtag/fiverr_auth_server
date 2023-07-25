@@ -7,11 +7,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="" />
   <script src="index.js" defer></script>
+
+
+  <style>
+    .center {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-content: center;
+      height: 100vh;
+    }
+
+    #connect-btn {
+      padding: 10px;
+      margin: 20px
+    }
+  </style>
 </head>
 
 <body>
-  <button id="connect-btn">Connect Your Wallet</button>
-  <div id="console"></div>
+  <div class="center">
+    <button id="connect-btn">Connect Your Wallet</button>
+    <div id="console"></div>
+  </div>
 </body>
 
 </html>

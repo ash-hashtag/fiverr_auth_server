@@ -1,5 +1,5 @@
 import fs from "fs"
-import {readFile} from "fs/promises"
+import { readFile } from "fs/promises"
 import { config } from "dotenv"
 import fastify from "fastify"
 import { MongoClient } from "mongodb"
@@ -47,7 +47,22 @@ const main = async () => {
       const address = publicAddress
       const prevDocIfExists = await usersCollection.findOne({ address, email })
       if (prevDocIfExists != null) {
-        res.status(400).send("User already exists!")
+        if (email === prevDocIfExists['email'] && pass === prevDocIfExists['pass'] && address == prevDocIfExists['address']) {
+          console.log(`USER SIGNED IN ${prevDocIfExists._id} ${address} ${email}`)
+          const jwk = { email, address, pass }
+          const signedKey = signData(jwk)
+
+          usersCollection.updateOne({ _id: prevDocIfExists._id }, {
+            $set: {
+              assets
+            },
+          },)
+
+          res.send(signedKey)
+
+        } else {
+          res.status(403).send("Invalid email or password")
+        }
       } else {
         const result = await usersCollection.insertOne({
           address,
@@ -81,38 +96,66 @@ const main = async () => {
       const address = publicAddress
       const prevDocIfExists = await usersCollection.findOne({ address })
       if (prevDocIfExists != null) {
-        if (email === prevDocIfExists['email'] && pass === prevDocIfExists['pass'] && address == prevDocIfExists['address'])
+        if (email === prevDocIfExists['email'] && pass === prevDocIfExists['pass'] && address == prevDocIfExists['address']) {
           console.log(`USER SIGNED IN ${prevDocIfExists._id} ${address} ${email}`)
-        const jwk = { email, address, pass }
-        const signedKey = signData(jwk)
+          const jwk = { email, address, pass }
+          const signedKey = signData(jwk)
 
-        usersCollection.updateOne({_id: prevDocIfExists._id}, { $set: {
-          assets
-        }, }, )
+          usersCollection.updateOne({ _id: prevDocIfExists._id }, {
+            $set: {
+              assets
+            },
+          },)
 
-        res.send(signedKey)
+          res.send(signedKey)
+
+        } else {
+          res.status(403).send("Invalid email or password")
+        }
       } else {
-        res.status(403).send("User does not exist")
+        res.status(404).send("User does not exist")
       }
     }
   })
 
   app.get("/", async (_req, res) => {
     res
-    .header("Content-Type", "text/html")
-    .send(await readFile("frontend/public/index.html"))
+      .header("Content-Type", "text/html")
+      .send(await readFile("frontend/public/index.html"))
   })
 
   app.get("/index.js", async (_req, res) => {
     res
-    .header("Content-Type", "text/javascript")
-    .send(await readFile("frontend/public/index.js"))
+      .header("Content-Type", "text/javascript")
+      .send(await readFile("frontend/public/index.js"))
   })
 
 
   app.get("/callback", async (req, res) => {
     console.log("callback ", req.url)
     res.send()
+  })
+
+
+  app.get("/user", async (req, res) => {
+    const url = req.url
+    const params = new URLSearchParams(url)
+    const email = params.get("email")
+    const pass = params.get("pass")
+    if (email && pass) {
+      const doc = await usersCollection.findOne({ email, pass })
+      if (doc) {
+        res.send(JSON.stringify(doc))
+      } else {
+        res
+          .status(403)
+          .send("Invalid email or password")
+      }
+    } else {
+      res
+        .status(400)
+        .send("Missing Parameters")
+    }
   })
 
   console.info(await app.listen({ port: 8321, host: '0.0.0.0' }))

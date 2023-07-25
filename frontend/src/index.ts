@@ -6,6 +6,8 @@ console.log("MAIN")
 const API_BASE_URL = ""
 
 const consoleElement = document.getElementById("console")!
+
+consoleElement.innerText += "Waiting to connect Wallet...\n"
 document.querySelector("#connect-btn")!.addEventListener("click", connectToWallet)
 console.info(TESTNET)
 
@@ -35,7 +37,10 @@ class MyDelegate implements WalletConnectionDelegate {
 }
 
 const delegate = new MyDelegate()
-async function connectToWallet()  {
+
+
+
+async function connectToWallet() {
 
   const browserWalletConnector = await BrowserWalletConnector.create(delegate)
 
@@ -43,11 +48,13 @@ async function connectToWallet()  {
 
   console.log(await browserWalletConnector.getConnectedAccount())
 
+  consoleElement.innerText += "Wallet Connected\n"
+
   signIn()
 }
 
 const jsonStringify = (o: Object) => {
- return JSON.stringify(o, (_key, value) => typeof value === "bigint" ? value.toString(): value )
+  return JSON.stringify(o, (_key, value) => typeof value === "bigint" ? value.toString() : value)
 }
 
 
@@ -78,7 +85,7 @@ const getSmartContractInfo = async (index: bigint, addr: string) => {
 
 }
 
-async function signIn  ()  {
+async function signIn() {
   console.log(`ACCOUNTS ${delegate.accounts.size}`)
   for (const [key, value] of delegate.accounts) {
     let message = ""
@@ -89,29 +96,34 @@ async function signIn  ()  {
 
       const assets: any[] = []
       assets.push(await getSmartContractInfo(BigInt(81), addr)) // Piggy Bank
+      assets.push(await getSmartContractInfo(BigInt(2059), addr)) // WCCD
       // assets.push(await getSmartContractInfo(BigInt(81), addr))
       const urlParams = new URLSearchParams(window.location.href)
       const email = urlParams.get("email")
       const pass = urlParams.get("pass")
       const signIn = urlParams.get("signin")
       const callbackUrl = urlParams.get("callback")
+      const signWithWallet = urlParams.get("signWithWallet")
       const address = addr
 
-      console.log( { email, pass, signIn, callbackUrl, address })
+      console.log({ email, pass, signIn, callbackUrl, address })
 
       message = jsonStringify({ assets, email, pass, address })
 
       console.log(`signing ${message} with ${addr}`)
 
-      const signedMessage = await conn.signMessage(addr, {
-        type: "StringMessage",
-        value: message
-      })
 
-      console.log(`signed ${message} to ${JSON.stringify(signedMessage)}`)
-      console.info(signedMessage)
-      const body = {
-        email, pass, assets, address, signedMessage
+      const body: any = {
+        email, pass, assets, address
+      }
+      if (signWithWallet === "true") {
+        const signedMessage = await conn.signMessage(addr, {
+          type: "StringMessage",
+          value: message
+        })
+        console.log(`signed ${message} to ${JSON.stringify(signedMessage)}`)
+        console.info(signedMessage)
+        body['sign'] = signedMessage
       }
       if (signIn === "true") {
         const response = await fetch(`${API_BASE_URL}/signin`, {
@@ -121,14 +133,52 @@ async function signIn  ()  {
           body: jsonStringify(body)
         })
         if (response.status === 200) {
-          const uri = new URL(callbackUrl!)
-          const params = new URLSearchParams(callbackUrl!)
-          params.append("address", address)
-          params.append("email", email!)
-          params.append("token", await response.text())
-          uri.search = params.toString()
-          console.log(`Launching ${uri}`)
-          window.location.href = uri.toString()
+          consoleElement.innerText += "Successfully Signed In. You can close this window\n"
+          const token = await response.text()
+          console.log(token)
+          if (callbackUrl) {
+            const uri = new URL(callbackUrl!)
+            const params = new URLSearchParams(callbackUrl!)
+            params.append("address", address)
+            params.append("email", email!)
+            params.append("token", token)
+            uri.search = params.toString()
+            console.log(`Launching ${uri}`)
+            window.location.href = uri.toString()
+          }
+        } else {
+          const body = await response.text()
+          console.error(body)
+          if (response.status == 404) {
+            consoleElement.innerText += "User does not exist, Signing up instead\n"
+            const response = await fetch(`${API_BASE_URL}/signup`, {
+              method: "PUT", headers: {
+                "content-type": "application/json"
+              },
+              body: jsonStringify(body)
+            })
+
+            if (response.status === 200) {
+              consoleElement.innerText += "Successfully Signed In. You can close this window\n"
+              const token = await response.text()
+              console.log(token)
+              if (callbackUrl) {
+                const uri = new URL(callbackUrl!)
+                const params = new URLSearchParams(callbackUrl!)
+                params.append("address", address)
+                params.append("email", email!)
+                params.append("token", token)
+                uri.search = params.toString()
+                console.log(`Launching ${uri}`)
+                window.location.href = uri.toString()
+              }
+            } else {
+              consoleElement.innerText += "Sign up failed\n"
+            }
+
+          } else {
+            consoleElement.innerText += "Sign in failed\n"
+          }
         }
 
       } else {
@@ -139,19 +189,22 @@ async function signIn  ()  {
           body: jsonStringify(body)
         })
 
-        const uri = new URL(callbackUrl!)
-        const params = new URLSearchParams(callbackUrl!)
         if (response.status === 200) {
-          params.append("address", address)
-          params.append("email", email!)
-          params.append("token", await response.text())
-          uri.search = params.toString()
-          console.log(`Launching ${uri}`)
-          window.location.href = uri.toString()
+          consoleElement.innerText += "Successfully Signed In. You can close this window\n"
+          const token = await response.text()
+          console.log(token)
+          if (callbackUrl) {
+            const uri = new URL(callbackUrl!)
+            const params = new URLSearchParams(callbackUrl!)
+            params.append("address", address)
+            params.append("email", email!)
+            params.append("token", token)
+            uri.search = params.toString()
+            console.log(`Launching ${uri}`)
+            window.location.href = uri.toString()
+          }
         } else {
-          params.append("error", await response.text())
-          uri.search = params.toString()
-          window.localStorage.href = uri.toString()
+          consoleElement.innerText += "Sign in failed\n"
         }
       }
       break
@@ -162,11 +215,4 @@ async function signIn  ()  {
 
   }
 }
-// function base64ToArrayBuffer(base64: string) {
-//   var binaryString = atob(base64);
-//   var bytes = new Uint8Array(binaryString.length);
-//   for (var i = 0; i < binaryString.length; i++) {
-//     bytes[i] = binaryString.charCodeAt(i);
-//   }
-//   return bytes.buffer;
-// }
+
