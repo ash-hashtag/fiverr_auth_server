@@ -1,0 +1,20 @@
+{
+  "name": "auth_server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "run": "node index.js""build": "npm install"
+  },
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.20.0",
+    "jsonwebtoken": "^9.0.1",
+    "mongodb": "^5.7.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.2"
+  }
+}

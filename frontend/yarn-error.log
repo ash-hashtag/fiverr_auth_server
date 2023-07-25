@@ -1,0 +1,32 @@
+Arguments: 
+  /usr/bin/node /usr/bin/yarn add @concordium/wallet-connectors
+
+PATH: 
+  /opt/google-cloud-cli/bin:/opt/google-cloud-cli/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin:/home/ash/.puro/bin:/home/ash/.puro/shared/pub_cache/bin:/home/ash/.puro/envs/default/flutter/bin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/rustup/bin:/home/ash/Development/flutter/bin:/home/ash/.surrealdb:/usr/lib/rustup/bin:/home/ash/.yarn/bin:/usr/share/scripts:/home/ash/.cargo/bin:/home/ash/.pub-cache/bin:/home/ash/.puro/bin:/home/ash/.puro/shared/pub_cache/bin:/home/ash/.puro/envs/default/flutter/bin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  20.4.0
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: getaddrinfo EAI_AGAIN registry.yarnpkg.com
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:118:26)
+
+npm manifest: 
+  {
+    "name": "frontend",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
