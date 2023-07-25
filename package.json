@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "run": "node index.js""build": "npm install"
+    "start": "node index.js"
   },
   "dependencies": {
     "crypto": "^1.0.1",

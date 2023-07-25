@@ -1,5 +1,5 @@
 Arguments: 
-  /usr/bin/node /usr/bin/yarn run run
+  /usr/bin/node /usr/bin/yarn start
 
 PATH: 
   /opt/google-cloud-cli/bin:/opt/google-cloud-cli/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin:/home/ash/.puro/bin:/home/ash/.puro/shared/pub_cache/bin:/home/ash/.puro/envs/default/flutter/bin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/rustup/bin:/home/ash/Development/flutter/bin:/home/ash/.surrealdb:/usr/lib/rustup/bin:/home/ash/.yarn/bin:/usr/share/scripts:/home/ash/.cargo/bin:/home/ash/.pub-cache/bin:/home/ash/.puro/bin:/home/ash/.puro/shared/pub_cache/bin:/home/ash/.puro/envs/default/flutter/bin
@@ -14,7 +14,7 @@ Platform:
   linux x64
 
 Trace: 
-  SyntaxError: /home/ash/fiverr/auth_server/package.json: Expected ',' or '}' after property value in JSON at position 159
+  SyntaxError: /home/ash/fiverr/auth_server/package.json: Expected ',' or '}' after property value in JSON at position 152
       at JSON.parse (<anonymous>)
       at /usr/lib/node_modules/yarn/lib/cli.js:1629:59
       at Generator.next (<anonymous>)
@@ -29,8 +29,8 @@ npm manifest:
     "license": "MIT",
     "type": "module",
     "scripts": {
-      "run": "node index.js"
-    }
+      "run": "node index.js""build": "npm install"
+    },
     "dependencies": {
       "crypto": "^1.0.1",
       "dotenv": "^16.3.1",
