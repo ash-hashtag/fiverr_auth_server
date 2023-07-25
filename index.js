@@ -7,8 +7,10 @@ import jwt from "jsonwebtoken"
 
 config()
 
-const publicKey = fs.readFileSync("publicKey").toString('utf8')
-const privateKey = fs.readFileSync("privateKey").toString('utf8')
+// const publicKey = fs.readFileSync("publicKey").toString('utf8')
+// const privateKey = fs.readFileSync("privateKey").toString('utf8')
+const publicKey = atob(process.env.PUBLIC_KEY)
+const privateKey = atob(process.env.PRIVATE_KEY)
 
 const signData = (payload) => {
   const token = jwt.sign(payload, privateKey, {
@@ -113,7 +115,7 @@ const main = async () => {
     res.send()
   })
 
-  console.info(await app.listen({ port: 8321 }))
+  console.info(await app.listen({ port: 8321, host: '0.0.0.0' }))
 }
 
 main()
