@@ -67,9 +67,9 @@ const getSmartContractInfo = async (index: bigint, addr: string) => {
       throw new Error(`name "${info.name}" doesn't start with "init_"`);
     }
     const data = { ...info }
-    const method = `${info.name.substring(prefix.length)}.view`
-    const result = await rpc.invokeContract({ contract: { index, subindex: BigInt(0) }, method })
-    data['view'] = result
+    // const method = `${info.name.substring(prefix.length)}.view`
+    // const result = await rpc.invokeContract({ contract: { index, subindex: BigInt(0) }, method })
+    // data['view'] = result
     console.info(data)
     return data
   } else {
