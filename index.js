@@ -1,4 +1,3 @@
-import { readFile } from "fs/promises";
 import { config } from "dotenv";
 import crypto from "crypto";
 import fastify from "fastify";
@@ -24,107 +23,6 @@ const main = async () => {
   const usersCollection = client.db(process.env.MONGODB_NAME).collection("users");
   const concordiumClient = createConcordiumClient(process.env.CCD_ADDRESS, Number(process.env.CCD_PORT), credentials.createSsl());
   await startServer(Number(process.env.PORT), usersCollection, concordiumClient);
-  const app = fastify();
-  app.get("/key", (req, res) => {
-    console.log(`GET /key FROM ${JSON.stringify(req.socket.address())}`);
-    res.send(publicKey);
-  });
-  app.put("/signup", async (req, res) => {
-    console.log(`PUT /signup FROM ${JSON.stringify(req.socket.address())}`);
-    const responseBody = req.body;
-    const email = responseBody.email;
-    const pass = responseBody.pass;
-    const assets = responseBody.assets;
-    const publicAddress = responseBody.address;
-    console.log(responseBody);
-    if (typeof email === "string" && typeof pass === "string" && typeof publicAddress === "string") {
-      const address = publicAddress;
-      const prevDocIfExists = await usersCollection.findOne({ address, email });
-      if (prevDocIfExists != null) {
-        if (email === prevDocIfExists["email"] && pass === prevDocIfExists["pass"] && address == prevDocIfExists["address"]) {
-          console.log(`USER SIGNED IN ${prevDocIfExists._id} ${address} ${email}`);
-          const jwk = { email, address, pass };
-          const signedKey = signData(jwk);
-          usersCollection.updateOne({ _id: prevDocIfExists._id }, {
-            $set: {
-              assets
-            }
-          });
-          res.send(signedKey);
-        } else {
-          res.status(403).send("Invalid email or password");
-        }
-      } else {
-        const result = await usersCollection.insertOne({
-          address,
-          assets,
-          pass,
-          email
-        });
-        console.log(`NEW USER SIGNED UP ${result.insertedId} ${address} ${email}`);
-        const jwk = { email, address, pass };
-        const signedKey = signData(jwk);
-        res.send(signedKey);
-      }
-    }
-  });
-  app.put("/signin", async (req, res) => {
-    console.log(`PUT /signin FROM ${JSON.stringify(req.socket.address())}`);
-    const responseBody = req.body;
-    const email = responseBody.email;
-    const pass = responseBody.pass;
-    const assets = responseBody.assets;
-    const publicAddress = responseBody.address;
-    console.log(responseBody);
-    if (typeof email === "string" && typeof pass === "string" && typeof publicAddress === "string") {
-      const address = publicAddress;
-      const prevDocIfExists = await usersCollection.findOne({ address });
-      if (prevDocIfExists != null) {
-        if (email === prevDocIfExists["email"] && pass === prevDocIfExists["pass"] && address == prevDocIfExists["address"]) {
-          console.log(`USER SIGNED IN ${prevDocIfExists._id} ${address} ${email}`);
-          const jwk = { email, address, pass };
-          const signedKey = signData(jwk);
-          usersCollection.updateOne({ _id: prevDocIfExists._id }, {
-            $set: {
-              assets
-            }
-          });
-          res.send(signedKey);
-        } else {
-          res.status(403).send("Invalid email or password");
-        }
-      } else {
-        res.status(404).send("User does not exist");
-      }
-    }
-  });
-  app.get("/", async (_req, res) => {
-    res.header("Content-Type", "text/html").send(await readFile("frontend/public/index.html"));
-  });
-  app.get("/index.js", async (_req, res) => {
-    res.header("Content-Type", "text/javascript").send(await readFile("frontend/public/index.js"));
-  });
-  app.get("/callback", async (req, res) => {
-    console.log("callback ", req.url);
-    res.send();
-  });
-  app.get("/user", async (req, res) => {
-    const url = req.url;
-    const params = new URLSearchParams(url);
-    const email = params.get("email");
-    const pass = params.get("pass");
-    if (email && pass) {
-      const doc = await usersCollection.findOne({ email, pass });
-      if (doc) {
-        res.send(JSON.stringify(doc));
-      } else {
-        res.status(403).send("Invalid email or password");
-      }
-    } else {
-      res.status(400).send("Missing Parameters");
-    }
-  });
-  console.info(await app.listen({ port: 8321, host: "0.0.0.0" }));
 };
 async function startServer(port, usersCollection, concordiumClient) {
   const app = fastify();
@@ -149,7 +47,31 @@ async function startServer(port, usersCollection, concordiumClient) {
     const pass = body.pass;
     const address = body.address;
     const signature = body.signature;
+    const changePass = body.changePass ?? false;
     if (email && pass && address && signature) {
+      const message = JSON.stringify({ address, email, pass });
+      const accountAddress = getAccountAddressFromBase58(address);
+      if (await verifySignature(message, accountAddress, signature, concordiumClient)) {
+        const userDoc = await usersCollection.findOne({ address });
+        if (changePass) {
+          if (userDoc) {
+            await usersCollection.updateOne({ _id: userDoc._id }, {
+              $set: {
+                pass
+              }
+            });
+          } else {
+            const result2 = await usersCollection.insertOne({ address, email, pass });
+            console.log(`INSERTED USER ${result2.insertedId}`);
+          }
+        } else {
+          if (userDoc == null) {
+            const result2 = await usersCollection.insertOne({ address, email, pass });
+            console.log(`INSERTED USER ${result2.insertedId}`);
+          }
+        }
+        res.send("success");
+      }
     } else {
       res.status(400).send("Missing Parameters");
     }
@@ -158,9 +80,8 @@ async function startServer(port, usersCollection, concordiumClient) {
   console.log(`Server ${result}`);
 }
 async function verifySignature(message, address, signature, concordiumClient) {
-  const accountAddress = getAccountAddressFromBase58(address);
-  const accountAccessStrucutre = await getAccountAccessStructure(accountAddress, concordiumClient);
-  return verifyMessageSignature(accountAccessStrucutre, accountAddress, Buffer.from(message, "utf8"), { 0: { 0: signature } });
+  const accountAccessStrucutre = await getAccountAccessStructure(address, concordiumClient);
+  return verifyMessageSignature(accountAccessStrucutre, address, Buffer.from(message, "utf8"), { 0: { 0: signature } });
 }
 async function getAccountAccessStructure(address, concordiumClient) {
   const accountInfo = await concordiumClient.getAccountInfo(address);
@@ -221,12 +142,29 @@ function recordToMap(record) {
   }
   return map;
 }
+async function getContractViewInfo(index, address, concordiumClient) {
+  const info = await concordiumClient.getInstanceInfo({ index, subindex: BigInt(0) });
+  const prefix = "init_";
+  console.log({ info });
+  if (info) {
+    if (!info.name.startsWith(prefix)) {
+      throw new Error(`name "${info.name}" doesn't start with "init_"`);
+    }
+    const method = `${info.name.substring(prefix.length)}.view`;
+    const result = await concordiumClient.invokeContract({ contract: { index, subindex: BigInt(0) }, method });
+    return result;
+  }
+  throw new Error("Something went wrong");
+}
 const test = async () => {
   const address = "3sHi2FD6vdHRe8UAwEuiPMvAZBYpHKZgiNSfDJ8GRL4ygTPno5";
   const signature = "88ddc1b0926c7e8c3993926361a20ce1325591e77cbd0fb262d39f16d162cc16f77ee960ad791b06b54f9fab41042a1fc0ec74b979b76b3d83309041c849b407";
   const message = "hello";
   const concordiumClient = createConcordiumClient(process.env.CCD_ADDRESS, Number(process.env.CCD_PORT), credentials.createSsl());
-  const result = await verifySignature(message, address, signature, concordiumClient);
+  const accountAddress = getAccountAddressFromBase58(address);
+  const result = await verifySignature(message, accountAddress, signature, concordiumClient);
   console.log(result);
+  console.log(await getContractViewInfo(BigInt(81), accountAddress, concordiumClient));
+  console.log(await getContractViewInfo(BigInt(2059), accountAddress, concordiumClient));
 };
 test();
