@@ -8,11 +8,15 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@concordium/node-sdk": "^9.0.0",
+    "@grpc/grpc-js": "^1.8.20",
+    "bs58": "^5.0.0",
     "crypto": "^1.0.1",
     "dotenv": "^16.3.1",
     "fastify": "^4.20.0",
     "jsonwebtoken": "^9.0.1",
-    "mongodb": "^5.7.0"
+    "mongodb": "^5.7.0",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.2"
