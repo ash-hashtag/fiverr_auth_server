@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@concordium/node-sdk": "^9.0.0",
+    "@concordium/web-sdk": "^6.0.0",
     "@grpc/grpc-js": "^1.8.20",
     "bs58": "^5.0.0",
     "crypto": "^1.0.1",

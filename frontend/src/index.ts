@@ -1,14 +1,15 @@
-
-import { AccountTransactionSignature } from "@concordium/node-sdk"
-import { TESTNET, BrowserWalletConnector, WalletConnection, WalletConnectionDelegate } from "@concordium/wallet-connectors"
+import { BrowserWalletConnector, WalletConnection, WalletConnectionDelegate } from "@concordium/wallet-connectors"
 
 
 const API_BASE_URL = ""
-const consoleElement = document.getElementById("console")!
 
-consoleElement.innerText += "Waiting to connect Wallet...\n"
+const addConsoleOutput = (s: string) => {
+  const consoleElement = document.getElementById("console")!
+  consoleElement.innerText += s + '\n'
+}
+
+addConsoleOutput("Waiting to connect Wallet...")
 document.querySelector("#connect-btn")!.addEventListener("click", connectToWallet)
-console.info(TESTNET)
 
 class MyDelegate implements WalletConnectionDelegate {
   accounts = new Map<WalletConnection, string | undefined>();
@@ -47,7 +48,7 @@ async function connectToWallet() {
 
   console.log(await browserWalletConnector.getConnectedAccount())
 
-  consoleElement.innerText += "Wallet Connected\n"
+  addConsoleOutput("Wallet Connected")
 
   signIn()
 }
@@ -59,35 +60,42 @@ const jsonStringify = (o: Object) => {
 
 async function signIn() {
   console.log(`ACCOUNTS ${delegate.accounts.size}`)
+  addConsoleOutput("Signing in...")
   for (const [key, value] of delegate.accounts) {
-    let message = ""
     const addr = value
     const conn = key
 
     if (addr != undefined) {
-      const urlParams = new URLSearchParams(window.location.href)
+      const urlParams = new URL(window.location.href).searchParams
       const email = urlParams.get("email")
       const pass = urlParams.get("pass")
-      // const callbackUrl = urlParams.get("callback")
       const address = addr
 
       if (email != null && pass != null) {
-        console.log({ email, pass, signIn,  address })
-
-        message = jsonStringify({ address, email, pass, })
-
-        console.log(`signing ${message} with ${addr}`)
-
-
-        const body: Record<string, string | AccountTransactionSignature> = {
-         address, email, pass, 
+        console.log({ email, pass, address })
+        const body: Record<string, any> = {
+          email, pass,
         }
+
+        const message = jsonStringify(body)
+        console.log(`signing ${message} with ${addr}`)
         const signature = await conn.signMessage(addr, {
           type: "StringMessage",
           value: message
-        })
+        }).catch(err => { console.error(err); return null })
+        if (signature == null) {
+          addConsoleOutput("Wallet Signing Failed")
+          return
+        }
+
+        addConsoleOutput("Wallet Signing Succeed")
+
         console.log(`signed ${message} to ${JSON.stringify(signature)}`)
         body['signature'] = signature
+        body['address'] = address
+        addConsoleOutput("Signing to the game")
+
+        console.log(`Sending Data ${jsonStringify(body)}`)
 
         const response = await fetch(`${API_BASE_URL}/signin`, {
           method: 'PUT',
@@ -99,9 +107,14 @@ async function signIn() {
 
         if (response.status == 200) {
           console.log("Successfully logged in")
+          addConsoleOutput("Signed successfully to the game. You can close this window")
         } else {
-          console.error(`Signin failed [${response.status}] ${await response.text()}`)
+          const text = await response.text()
+          console.error(`Signin failed [${response.status}] ${text}`)
+          addConsoleOutput("Signing failed  to the game. Reason: ${text}")
         }
+      } else {
+        addConsoleOutput("Missing Fields")
       }
 
       break
